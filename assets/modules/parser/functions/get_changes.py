@@ -1,16 +1,17 @@
+import asyncio
+import aiofiles
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import time
 import json
 import difflib
 
 
-async def manage_page(link, class_name):
-    with open("./assets/modules/parser/elements/elements.json") as file:
-        elems = json.load(file)
+async def get_changes(link, class_name):
+    async with aiofiles.open("./assets/modules/parser/elements/elements.json") as file:
+        elems = json.loads(await file.read())
 
     driver = Chrome()
     driver.maximize_window()
@@ -19,7 +20,7 @@ async def manage_page(link, class_name):
     WebDriverWait(driver, 7).until(
         EC.visibility_of_element_located((By.CLASS_NAME, class_name))
     )
-    time.sleep(3)
+    await asyncio.sleep(3)
 
     print("Успешно загружено!")
 
@@ -33,6 +34,16 @@ async def manage_page(link, class_name):
     body_content = body_element.get_attribute("innerHTML")
     print("Содержимое: " + body_content[:10] + "...")
 
+    if not content:
+        elems[link][class_name] = body_content
+
+        async with aiofiles.open(
+            "./assets/modules/parser/elements/elements.json", "w"
+        ) as file:
+            await file.write(json.dumps(elems, indent=4))
+
+        return None
+
     result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
 
     if result:
@@ -40,16 +51,17 @@ async def manage_page(link, class_name):
             [line for line in result if line.startswith("-") or line.startswith("+")]
         )
 
-        # Отправляем результат пользователю
-        with open("./assets/modules/parser/elements/elements.json", "w") as file:
-            elems[link][class_name] = body_content
+        elems[link][class_name] = body_content
 
-            json.dump(elems, file)
+        async with aiofiles.open(
+            "./assets/modules/parser/elements/elements.json", "w"
+        ) as file:
+            await file.write(json.dumps(elems, indent=4))
 
-        return f"Изменения между строками:\n{changes}"
+        return changes
 
     else:
-        return "Изменений нет."
+        return None
 
     # if body_content != content:
 

@@ -5,6 +5,7 @@ from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 import json
 
 from assets.modules.parser.functions.fill_urls import fill_urls
+import assets.config.config
 
 
 async def tracking_handler(message: Message) -> None:
@@ -24,7 +25,10 @@ async def tracking_handler(message: Message) -> None:
     builder.add(InlineKeyboardButton(text="Остановить", callback_data="stop"))
 
     await message.answer(
-        f"Список добавленных сайтов:\n\n{'\n\n'.join(output)}".strip(),
+        f"Список добавленных сайтов:\n\n{'\n\n'.join(output)}".strip()
+        + "\n\nСтатус мониторинга: "
+        + f"{'<b>Остановлен</b>' if not assets.config.config.task else '<b>Запущен</b>'}",
         disable_web_page_preview=True,
         reply_markup=builder.as_markup(),
+        parse_mode="HTML",
     )

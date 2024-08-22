@@ -1,4 +1,3 @@
-from assets.modules.parser.functions.get_page import manage_page
 from assets.modules.states.states import ManageSite
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext

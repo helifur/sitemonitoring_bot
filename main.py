@@ -2,13 +2,14 @@ import asyncio
 import logging
 import sys
 
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.types import Message
+from aiogram import F
+from aiogram.types import CallbackQuery
 from aiogram.filters import CommandStart, Command, StateFilter
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types.inline_keyboard_button import InlineKeyboardButton
 
-from assets.config.config import TOKEN
+
+from assets.config.config import dp, bot
 from assets.modules.states.states import ManageSite
 
 from assets.modules.handlers.help import help_handler
@@ -22,24 +23,53 @@ from assets.modules.handlers.add_classname import add_classname_handler
 from assets.modules.handlers.delete_site import delete_site_handler
 from assets.modules.handlers.remove_classname import remove_classname_handler
 
-from assets.modules.parser.functions.get_page import manage_page
+from assets.modules.parser.parser import parser
+
+import assets.config.config
 
 
-dp = Dispatcher()
+@dp.callback_query(F.data == "launch")
+async def launch_monitoring(callback: CallbackQuery):
+    assets.config.config.task = asyncio.create_task(parser(callback.message.chat.id))
 
+    await callback.answer("Мониторинг запущен!", show_alert=True)
 
-@dp.message(Command("test"))
-async def test(message: Message):
-    await message.answer(
-        manage_page("https://www.linux.org.ru/forum/general/10040134", "msg_body")
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="Запустить", callback_data="launch"))
+    builder.add(InlineKeyboardButton(text="Остановить", callback_data="stop"))
+
+    await callback.message.edit_text(
+        callback.message.text[:-10] + "<b>Запущен</b>",
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+        reply_markup=builder.as_markup(),
     )
 
 
-async def main() -> None:
-    # Initialize Bot instance with default bot properties which will be passed to all API calls
-    # default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    bot = Bot(token=TOKEN)
+@dp.callback_query(F.data == "stop")
+async def stop_monitoring(callback: CallbackQuery):
+    assets.config.config.task.cancel()
 
+    try:
+        await assets.config.config.task
+
+    except asyncio.CancelledError:
+        await callback.answer("Мониторинг остановлен!", show_alert=True)
+
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(text="Запустить", callback_data="launch"))
+        builder.add(InlineKeyboardButton(text="Остановить", callback_data="stop"))
+
+        await callback.message.edit_text(
+            callback.message.text[:-7] + "<b>Остановлен</b>",
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+            reply_markup=builder.as_markup(),
+        )
+        assets.config.config.task = None
+
+
+async def main() -> None:
     dp.message.register(start_handler, CommandStart(), StateFilter(None))
     dp.message.register(help_handler, Command("help"), StateFilter(None))
     dp.message.register(add_handler, Command("add"), StateFilter(None))
