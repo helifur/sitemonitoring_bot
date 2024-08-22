@@ -18,7 +18,7 @@ async def tracking_handler(message: Message) -> None:
 
     await fill_urls()
 
-    output = [f"{i} == {", ".join(data[i])}" for i in data.keys()]
+    output = [f"{i} == {', '.join(data[i])}" for i in data.keys()]
 
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="Запустить", callback_data="launch"))
