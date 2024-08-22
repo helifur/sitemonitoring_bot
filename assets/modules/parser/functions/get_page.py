@@ -4,65 +4,57 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 import time
-import re
 import json
 import difflib
 
-if __name__ == "__main__":
-    link = "https://iframeab-pre4791.intickets.ru/"
-    class_name = "home"
 
-    with open("../../../data/data.json") as file:
-        data = json.load(file)
+async def manage_page(link, class_name):
+    with open("./assets/modules/parser/elements/elements.json") as file:
+        elems = json.load(file)
 
     driver = Chrome()
     driver.maximize_window()
 
     driver.get(link)
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 7).until(
         EC.visibility_of_element_located((By.CLASS_NAME, class_name))
     )
     time.sleep(3)
 
     print("Успешно загружено!")
 
-    name = re.search(r"(?:https?://)?(?:www\.)?([^/]+)", link).group(1)
-    print(name)
+    # name = re.search(r"(?:https?://)?(?:www\.)?([^/]+)", link).group(1)
+    # print(name)
 
-    if name not in data.keys():
-        data[name] = f"../../../data/pages/{data["site_counter"]}.html"
+    content = elems[link][class_name]
 
-        with open(data[name], "w") as f:
-            body_element = driver.find_element(By.CLASS_NAME, class_name)
-            body_content = body_element.get_attribute("innerHTML").replace("\n", "")
+    body_element = driver.find_element(By.CLASS_NAME, class_name)
+    print("Элемент найден!")
+    body_content = body_element.get_attribute("innerHTML")
+    print("Содержимое: " + body_content[:10] + "...")
 
-            f.write(body_content)
+    result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
 
-        data["site_counter"] += 1
+    if result:
+        changes = "\n".join(
+            [line for line in result if line.startswith("-") or line.startswith("+")]
+        )
+
+        # Отправляем результат пользователю
+        with open("./assets/modules/parser/elements/elements.json", "w") as file:
+            elems[link][class_name] = body_content
+
+            json.dump(elems, file)
+
+        return f"Изменения между строками:\n{changes}"
 
     else:
-        with open(data[name], "r", encoding="utf-8") as f:
-            content = f.read()
+        return "Изменений нет."
 
-            body_element = driver.find_element(By.CLASS_NAME, class_name)
-            print("Элемент найден!")
-            body_content = body_element.get_attribute("innerHTML").replace("\n", "")
-            print("Содержимое: " + body_content[:10] + "...")
+    # if body_content != content:
 
-            if body_content != content:
-                print("ALERT!")
+    # with open(data[name], "w") as f:
+    # f.write(body_content)
 
-                d = difflib.HtmlDiff()
-
-                # Получение HTML-таблицы с различиями
-                html_diff = d.make_file(body_content.splitlines(), content.splitlines())
-
-                # Сохранение в файл
-                with open("diff.html", "w") as f:
-                    f.write(html_diff)
-
-                with open(data[name], "w") as f:
-                    f.write(body_content)
-
-    with open("../../../data/data.json", "w") as file:
-        json.dump(data, file)
+    # with open("../../../data/data.json", "w") as file:
+    # json.dump(data, file)
