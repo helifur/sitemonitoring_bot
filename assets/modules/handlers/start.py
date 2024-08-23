@@ -8,5 +8,6 @@ async def start_handler(message: Message) -> None:
     """
     await message.answer(
         f"Здравствуйте, {html.bold(message.from_user.full_name)}!\n"
-        "Для получения справки используйте /help."
+        "Для получения справки используйте /help.",
+        parse_mode="HTML",
     )

@@ -18,7 +18,10 @@ async def tracking_handler(message: Message) -> None:
 
     await fill_urls()
 
-    output = [f"{i} == {', '.join(data[i])}" for i in data.keys()]
+    if data:
+        output = [f"{i} == {', '.join(data[i])}" for i in data.keys()]
+    else:
+        output = ["Пусто!"]
 
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(text="Запустить", callback_data="launch"))

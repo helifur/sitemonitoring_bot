@@ -30,8 +30,6 @@ import assets.config.config
 
 @dp.callback_query(F.data == "launch")
 async def launch_monitoring(callback: CallbackQuery):
-    assets.config.config.task = asyncio.create_task(parser(callback.message.chat.id))
-
     await callback.answer("Мониторинг запущен!", show_alert=True)
 
     builder = InlineKeyboardBuilder()
@@ -44,6 +42,7 @@ async def launch_monitoring(callback: CallbackQuery):
         disable_web_page_preview=True,
         reply_markup=builder.as_markup(),
     )
+    assets.config.config.task = asyncio.create_task(parser(callback.message.chat.id))
 
 
 @dp.callback_query(F.data == "stop")

@@ -3,7 +3,7 @@ import aiofiles
 import json
 
 from assets.modules.parser.functions.get_changes import get_changes
-from assets.config.config import bot
+from assets.config.config import bot, timer
 
 
 async def parser(chat_id):
@@ -29,4 +29,4 @@ async def parser(chat_id):
                         disable_web_page_preview=True,
                     )
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(timer)
