@@ -19,4 +19,11 @@ async def fill_urls():
     ) as f:
         await f.write(json.dumps(result, indent=4))
 
+    result = {i: "" for i in data.keys() if i[-3:] == "xml"}
+
+    async with aiofiles.open(
+        "./assets/modules/parser/elements/sitemaps.json", "w"
+    ) as f:
+        await f.write(json.dumps(result, indent=4))
+
     return True
