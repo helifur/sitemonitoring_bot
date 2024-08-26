@@ -10,6 +10,7 @@ async def remove_classname_handler(message: Message, state: FSMContext) -> None:
     """
     with open("./assets/data/data.json") as f:
         data = json.load(f)
+        data = data[str(message.chat.id)]
 
     link = await state.get_data()
     link = link["link"]

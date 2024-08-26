@@ -10,6 +10,12 @@ async def delete_site_handler(message: Message, state: FSMContext) -> None:
     with open("./assets/data/data.json") as f:
         data = json.load(f)
 
+    try:
+        data = data[str(message.chat.id)]
+
+    except KeyError:
+        data = {}
+
     if message.text not in data.keys():
         await message.answer("Вы еще не добавляли этот сайт или ссылка некорректна!")
 

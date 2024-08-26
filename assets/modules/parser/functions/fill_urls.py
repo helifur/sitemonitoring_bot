@@ -2,12 +2,18 @@ import json
 import aiofiles
 
 
-async def fill_urls():
+async def fill_urls(chat_id):
     """
     This function fills in the json that the parser uses when /tracking is invoked
     """
     async with aiofiles.open("./assets/data/data.json") as f:
         data = json.loads(await f.read())
+
+    try:
+        data = data[chat_id]
+
+    except KeyError:
+        return True
 
     result = {}
 

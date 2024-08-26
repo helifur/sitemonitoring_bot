@@ -16,7 +16,13 @@ async def tracking_handler(message: Message) -> None:
     with open("./assets/data/data.json") as f:
         data = json.load(f)
 
-    await fill_urls()
+    try:
+        data = data[str(message.chat.id)]
+
+    except KeyError:
+        data = None
+
+    await fill_urls(message.chat.id)
 
     if data:
         output = [f"{i} == {', '.join(data[i])}" for i in data.keys()]
