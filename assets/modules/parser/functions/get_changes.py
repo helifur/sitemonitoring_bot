@@ -11,9 +11,10 @@ import difflib
 from lxml import etree
 
 
-async def get_changes(link, class_name):
+async def get_changes(link, class_name, chat_id):
     async with aiofiles.open("./assets/modules/parser/elements/elements.json") as file:
-        elems = json.loads(await file.read())
+        all_elems = json.loads(await file.read())
+        elems = all_elems[chat_id]
 
     # sitemap
     print(link[-3:])
@@ -37,7 +38,8 @@ async def get_changes(link, class_name):
         async with aiofiles.open(
             "./assets/modules/parser/elements/sitemaps.json"
         ) as file:
-            data = json.loads(await file.read())
+            all_data = json.loads(await file.read())
+            data = all_data[chat_id]
 
         previous = data[link]
 
@@ -48,11 +50,12 @@ async def get_changes(link, class_name):
 
         if not previous:
             data[link] = urls
+            all_data[chat_id] = data
 
             async with aiofiles.open(
                 "./assets/modules/parser/elements/sitemaps.json", "w"
             ) as file:
-                await file.write(json.dumps(data, indent=4))
+                await file.write(json.dumps(all_data, indent=4))
 
             return None
 
@@ -69,11 +72,12 @@ async def get_changes(link, class_name):
             return None
 
         data[link] = urls
+        all_data[chat_id] = data
 
         async with aiofiles.open(
             "./assets/modules/parser/elements/sitemaps.json", "w"
         ) as file:
-            await file.write(json.dumps(data, indent=4))
+            await file.write(json.dumps(all_data, indent=4))
 
         return ans
 
@@ -81,9 +85,15 @@ async def get_changes(link, class_name):
     driver.maximize_window()
 
     driver.get(link)
-    WebDriverWait(driver, 7).until(
-        EC.visibility_of_element_located((By.CLASS_NAME, class_name))
-    )
+
+    try:
+        WebDriverWait(driver, 7).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, class_name))
+        )
+
+    except Exception:
+        pass
+
     await asyncio.sleep(3)
 
     print("Успешно загружено!")
@@ -100,11 +110,12 @@ async def get_changes(link, class_name):
 
     if not content:
         elems[link][class_name] = body_content
+        all_elems[chat_id] = elems
 
         async with aiofiles.open(
             "./assets/modules/parser/elements/elements.json", "w"
         ) as file:
-            await file.write(json.dumps(elems, indent=4))
+            await file.write(json.dumps(all_elems, indent=4))
 
         return None
 
@@ -116,11 +127,12 @@ async def get_changes(link, class_name):
         )
 
         elems[link][class_name] = body_content
+        all_elems[chat_id] = elems
 
         async with aiofiles.open(
             "./assets/modules/parser/elements/elements.json", "w"
         ) as file:
-            await file.write(json.dumps(elems, indent=4))
+            await file.write(json.dumps(all_elems, indent=4))
 
         return changes
 

@@ -10,10 +10,11 @@ async def parser(chat_id):
     while True:
         async with aiofiles.open("./assets/data/data.json") as file:
             sites = json.loads(await file.read())
+            sites = sites[chat_id]
 
         for url, classnames in sites.items():
             for classname in classnames:
-                result = await get_changes(url, classname)
+                result = await get_changes(url, classname, chat_id)
 
                 # if not result:
                 #    await bot.send_message(
