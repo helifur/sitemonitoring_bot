@@ -35,6 +35,18 @@ async def get_changes(link, class_name, chat_id):
             )
         ]
 
+        lastmods = [
+            lastmod.text
+            for lastmod in tree.findall(
+                ".//{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
+            )
+        ]
+
+        sitemaps = {}
+
+        for i in range(len(urls)):
+            sitemaps[urls[i]] = lastmods[i]
+
         async with aiofiles.open(
             "./assets/modules/parser/elements/sitemaps.json"
         ) as file:
@@ -43,13 +55,10 @@ async def get_changes(link, class_name, chat_id):
 
         previous = data[link]
 
-        new_urls = set(urls) - set(previous)
-        removed_urls = set(previous) - set(urls)
-
         ans = ""
 
         if not previous:
-            data[link] = urls
+            data[link] = sitemaps
             all_data[chat_id] = data
 
             async with aiofiles.open(
@@ -59,19 +68,37 @@ async def get_changes(link, class_name, chat_id):
 
             return None
 
+        new_urls = set(urls) - set(previous.keys())
+        removed_urls = set(previous.keys()) - set(urls)
+
         if new_urls or removed_urls:
             if new_urls:
                 ans += "Добавлены URL:\n\n"
                 for url in new_urls:
                     ans += url + "\n"
+                ans += "\n=====================\n\n"
+
             if removed_urls:
                 ans += "Удалены URL:\n"
                 for url in removed_urls:
                     ans += url + "\n"
+                ans += "\n=====================\n\n"
         else:
             return None
 
-        data[link] = urls
+        flag = False
+
+        for i in range(len(lastmods)):
+            if lastmods[i] != previous.values()[i]:
+                if not flag:
+                    ans += "Изменения в lastmods:\n"
+                    flag = True
+
+                ans += f"URL: {urls[i]}\n"
+                ans += f"Старый lastmod: {previous.values()[i]}\n"
+                ans += f"Новый lastmod: {lastmods[i]}\n\n"
+
+        data[link] = sitemaps
         all_data[chat_id] = data
 
         async with aiofiles.open(
@@ -81,18 +108,20 @@ async def get_changes(link, class_name, chat_id):
 
         return ans
 
+    "============================================="
+
     driver = Chrome()
     driver.maximize_window()
 
     driver.get(link)
 
     try:
-        WebDriverWait(driver, 7).until(
+        WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CLASS_NAME, class_name))
         )
 
     except Exception:
-        pass
+        return f"Элемент с классом {class_name} не был обнаружен!"
 
     await asyncio.sleep(3)
 

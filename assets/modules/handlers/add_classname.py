@@ -12,17 +12,17 @@ async def add_classname_handler(message: Message, state: FSMContext) -> None:
         all_data = json.load(f)
 
     try:
-        data = all_data[message.chat.id]
+        data = all_data[str(message.chat.id)]
 
     except KeyError:
-        all_data[message.chat.id] = {}
+        all_data[str(message.chat.id)] = {}
         data = {}
 
     link = await state.get_data()
     link = link["link"]
 
     if link not in data.keys():
-        all_data[message.chat.id][link] = [message.text]
+        all_data[str(message.chat.id)][link] = [message.text]
 
         with open("./assets/data/data.json", "w") as f:
             json.dump(all_data, f)
@@ -36,7 +36,7 @@ async def add_classname_handler(message: Message, state: FSMContext) -> None:
         )
 
     else:
-        all_data[message.chat.id][link].append(message.text)
+        all_data[str(message.chat.id)][link].append(message.text)
 
         with open("./assets/data/data.json", "w") as f:
             json.dump(all_data, f)
