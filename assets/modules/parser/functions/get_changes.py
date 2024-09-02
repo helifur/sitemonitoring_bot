@@ -1,12 +1,17 @@
 import asyncio
 import aiofiles
-from selenium.webdriver import Chrome
+from fake_useragent import UserAgent
+import undetected_chromedriver as uc
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+
 import json
+import time
 import difflib
+import re
 
 from lxml import etree
 
@@ -20,7 +25,7 @@ async def get_changes(link, class_name, chat_id):
     print(link[-3:])
     if link[-3:] == "xml":
         print("sitemap")
-        driver = Chrome()
+        driver = uc.Chrome()
         driver.maximize_window()
 
         driver.get(link)
@@ -110,20 +115,41 @@ async def get_changes(link, class_name, chat_id):
 
     "============================================="
 
-    driver = Chrome()
+    driver = uc.Chrome(use_subprocess=True)
     driver.maximize_window()
 
     driver.get(link)
 
+    if "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
+        "."
+    ):
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.CLASS_NAME, "scheme-canvas"))
+            )
+
+            await asyncio.sleep(2)
+
+        except Exception:
+            elems[link][class_name] = "Билеты распроданы!"
+            all_elems[chat_id] = elems
+
+            async with aiofiles.open(
+                "./assets/modules/parser/elements/elements.json", "w"
+            ) as file:
+                await file.write(json.dumps(all_elems, indent=4))
+
+            return None
+
     try:
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 20).until(
             EC.visibility_of_element_located((By.CLASS_NAME, class_name))
         )
 
-    except Exception:
-        return f"Элемент с классом {class_name} не был обнаружен!"
+        await asyncio.sleep(2)
 
-    await asyncio.sleep(3)
+    except Exception:
+        result = f"Элемент с классом {class_name} не был обнаружен!"
 
     print("Успешно загружено!")
 
@@ -136,6 +162,23 @@ async def get_changes(link, class_name, chat_id):
     print("Элемент найден!")
     body_content = body_element.get_attribute("innerHTML")
     print("Содержимое: " + body_content[:10] + "...")
+
+    driver.quit()
+    # ua = UserAgent()
+    # user_agent = ua.random
+
+    # opts.add_argument(f"user-agent={user_agent}")
+    # opts.add_argument("--disable-blink-features=AutomationControlled")
+    # opts.add_argument("--disable-extensions")
+    # opts.add_argument("--disable-gpu")
+
+    # driver = uc.Chrome(options=opts)
+    # driver = webdriver.Chrome(options=opts)
+
+    # driver.maximize_window()
+
+    # name = re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1)
+    # print(name)
 
     if not content:
         elems[link][class_name] = body_content
