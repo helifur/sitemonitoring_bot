@@ -1,108 +1,88 @@
 import asyncio
 import aiofiles
-from fake_useragent import UserAgent
 import undetected_chromedriver as uc
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
 import json
-import time
 import difflib
 import re
 
 from lxml import etree
 
 
-async def get_changes(link, class_name, chat_id):
-    async with aiofiles.open("./assets/modules/parser/elements/elements.json") as file:
-        all_elems = json.loads(await file.read())
-        elems = all_elems[chat_id]
+async def parse_intickets(driver):
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "scheme-canvas"))
+        )
 
-    # sitemap
-    print(link[-3:])
-    if link[-3:] == "xml":
-        print("sitemap")
-        driver = uc.Chrome()
-        driver.maximize_window()
+        await asyncio.sleep(2)
 
-        driver.get(link)
-        await asyncio.sleep(3)
+        body_content = element.get_attribute("innerHTML")
 
-        tree = etree.fromstring(driver.page_source)
+        return body_content
 
-        urls = [
-            loc.text
-            for loc in tree.findall(
-                ".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc"
-            )
-        ]
+    except Exception:
+        return None
 
-        lastmods = [
-            lastmod.text
-            for lastmod in tree.findall(
-                ".//{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
-            )
-        ]
 
-        sitemaps = {}
+async def parse_timepad(driver):
+    try:
+        iframe = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "iframe"))
+        )
 
-        for i in range(len(urls)):
-            sitemaps[urls[i]] = lastmods[i]
+        driver.switch_to.frame(iframe)
 
-        async with aiofiles.open(
-            "./assets/modules/parser/elements/sitemaps.json"
-        ) as file:
-            all_data = json.loads(await file.read())
-            data = all_data[chat_id]
+        element = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "tpwf-loader-fadeable"))
+        )
+        await asyncio.sleep(2)
 
-        previous = data[link]
+        body_content = element.get_attribute("innerHTML")
+        return body_content
 
-        ans = ""
+    except Exception:
+        return None
 
-        if not previous:
-            data[link] = sitemaps
-            all_data[chat_id] = data
 
-            async with aiofiles.open(
-                "./assets/modules/parser/elements/sitemaps.json", "w"
-            ) as file:
-                await file.write(json.dumps(all_data, indent=4))
+async def parse_sitemap(driver, link, chat_id):
+    print("sitemap")
 
-            return None
+    driver.get(link)
+    await asyncio.sleep(3)
 
-        new_urls = set(urls) - set(previous.keys())
-        removed_urls = set(previous.keys()) - set(urls)
+    tree = etree.fromstring(driver.page_source)
 
-        if new_urls or removed_urls:
-            if new_urls:
-                ans += "Добавлены URL:\n\n"
-                for url in new_urls:
-                    ans += url + "\n"
-                ans += "\n=====================\n\n"
+    urls = [
+        loc.text
+        for loc in tree.findall(".//{http://www.sitemaps.org/schemas/sitemap/0.9}loc")
+    ]
 
-            if removed_urls:
-                ans += "Удалены URL:\n"
-                for url in removed_urls:
-                    ans += url + "\n"
-                ans += "\n=====================\n\n"
-        else:
-            return None
+    lastmods = [
+        lastmod.text
+        for lastmod in tree.findall(
+            ".//{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
+        )
+    ]
 
-        flag = False
+    sitemaps = {}
 
-        for i in range(len(lastmods)):
-            if lastmods[i] != previous.values()[i]:
-                if not flag:
-                    ans += "Изменения в lastmods:\n"
-                    flag = True
+    for i in range(len(urls)):
+        sitemaps[urls[i]] = lastmods[i]
 
-                ans += f"URL: {urls[i]}\n"
-                ans += f"Старый lastmod: {previous.values()[i]}\n"
-                ans += f"Новый lastmod: {lastmods[i]}\n\n"
+    async with aiofiles.open("./assets/modules/parser/elements/sitemaps.json") as file:
+        all_data = json.loads(await file.read())
+        data = all_data[chat_id]
 
+    previous = data[link]
+
+    ans = ""
+
+    if not previous:
         data[link] = sitemaps
         all_data[chat_id] = data
 
@@ -111,57 +91,91 @@ async def get_changes(link, class_name, chat_id):
         ) as file:
             await file.write(json.dumps(all_data, indent=4))
 
-        return ans
+        return None
 
-    "============================================="
+    new_urls = set(urls) - set(previous.keys())
+    removed_urls = set(previous.keys()) - set(urls)
+
+    if new_urls or removed_urls:
+        if new_urls:
+            ans += "Добавлены URL:\n\n"
+            for url in new_urls:
+                ans += url + "\n"
+            ans += "\n=====================\n\n"
+
+        if removed_urls:
+            ans += "Удалены URL:\n"
+            for url in removed_urls:
+                ans += url + "\n"
+            ans += "\n=====================\n\n"
+
+    flag = False
+
+    for i in range(len(lastmods)):
+        if lastmods[i] != previous.values()[i]:
+            if not flag:
+                ans += "Изменения в lastmods:\n"
+                flag = True
+
+            ans += f"URL: {urls[i]}\n"
+            ans += f"Старый lastmod: {previous.values()[i]}\n"
+            ans += f"Новый lastmod: {lastmods[i]}\n\n"
+
+    data[link] = sitemaps
+    all_data[chat_id] = data
+
+    async with aiofiles.open(
+        "./assets/modules/parser/elements/sitemaps.json", "w"
+    ) as file:
+        await file.write(json.dumps(all_data, indent=4))
+
+    return ans
+
+
+async def get_changes(link, class_name, chat_id):
+    async with aiofiles.open("./assets/modules/parser/elements/elements.json") as file:
+        all_elems = json.loads(await file.read())
+        elems = all_elems[chat_id]
 
     driver = uc.Chrome(use_subprocess=True)
     driver.maximize_window()
 
+    if link[-3:] == "xml":
+        return parse_sitemap(driver, link, chat_id)
+
+    "============================================="
+
     driver.get(link)
 
-    if "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
+    if "timepad" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
         "."
     ):
+        body_content = parse_timepad(driver)
+
+    elif "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
+        1
+    ).split("."):
+        body_content = parse_intickets(driver)
+
+    else:
         try:
             WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, "scheme-canvas"))
+                EC.visibility_of_element_located((By.CLASS_NAME, class_name))
             )
-
             await asyncio.sleep(2)
 
+            body_element = driver.find_element(By.CLASS_NAME, class_name)
+            print("Элемент найден!")
+            body_content = body_element.get_attribute("innerHTML")
+            print("Содержимое: " + body_content[:10] + "...")
+
         except Exception:
-            elems[link][class_name] = "Билеты распроданы!"
-            all_elems[chat_id] = elems
-
-            async with aiofiles.open(
-                "./assets/modules/parser/elements/elements.json", "w"
-            ) as file:
-                await file.write(json.dumps(all_elems, indent=4))
-
-            return None
-
-    try:
-        WebDriverWait(driver, 20).until(
-            EC.visibility_of_element_located((By.CLASS_NAME, class_name))
-        )
-
-        await asyncio.sleep(2)
-
-    except Exception:
-        result = f"Элемент с классом {class_name} не был обнаружен!"
-
-    print("Успешно загружено!")
+            return f"Элемент с классом {class_name} не был обнаружен!"
 
     # name = re.search(r"(?:htts://)?(?:www\.)?([^/]+)", link).group(1)
     # print(name)
 
     content = elems[link][class_name]
-
-    body_element = driver.find_element(By.CLASS_NAME, class_name)
-    print("Элемент найден!")
-    body_content = body_element.get_attribute("innerHTML")
-    print("Содержимое: " + body_content[:10] + "...")
 
     driver.quit()
     # ua = UserAgent()
