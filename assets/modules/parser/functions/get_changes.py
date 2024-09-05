@@ -13,13 +13,18 @@ import re
 from lxml import etree
 
 
-async def parse_intickets(driver):
+async def parse_intickets(driver, classname):
     try:
+        # waiting for canvas appearing
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "scheme-canvas"))
         )
-
         await asyncio.sleep(2)
+
+        # get element
+        element = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, classname))
+        )
 
         body_content = element.get_attribute("innerHTML")
 
@@ -53,9 +58,8 @@ async def parse_sitemap(driver, link, chat_id):
     print("sitemap")
 
     driver.get(link)
-    await asyncio.sleep(3)
-
     tree = etree.fromstring(driver.page_source)
+    driver.quit()
 
     urls = [
         loc.text
@@ -141,7 +145,7 @@ async def get_changes(link, class_name, chat_id):
     driver.maximize_window()
 
     if link[-3:] == "xml":
-        return parse_sitemap(driver, link, chat_id)
+        return await parse_sitemap(driver, link, chat_id)
 
     "============================================="
 
@@ -150,12 +154,12 @@ async def get_changes(link, class_name, chat_id):
     if "timepad" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
         "."
     ):
-        body_content = parse_timepad(driver)
+        body_content = await parse_timepad(driver)
 
     elif "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
         1
     ).split("."):
-        body_content = parse_intickets(driver)
+        body_content = await parse_intickets(driver, class_name)
 
     else:
         try:
@@ -172,27 +176,9 @@ async def get_changes(link, class_name, chat_id):
         except Exception:
             return f"Элемент с классом {class_name} не был обнаружен!"
 
-    # name = re.search(r"(?:htts://)?(?:www\.)?([^/]+)", link).group(1)
-    # print(name)
+    driver.quit()
 
     content = elems[link][class_name]
-
-    driver.quit()
-    # ua = UserAgent()
-    # user_agent = ua.random
-
-    # opts.add_argument(f"user-agent={user_agent}")
-    # opts.add_argument("--disable-blink-features=AutomationControlled")
-    # opts.add_argument("--disable-extensions")
-    # opts.add_argument("--disable-gpu")
-
-    # driver = uc.Chrome(options=opts)
-    # driver = webdriver.Chrome(options=opts)
-
-    # driver.maximize_window()
-
-    # name = re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1)
-    # print(name)
 
     if not content:
         elems[link][class_name] = body_content
@@ -224,11 +210,3 @@ async def get_changes(link, class_name, chat_id):
 
     else:
         return None
-
-    # if body_content != content:
-
-    # with open(data[name], "w") as f:
-    # f.write(body_content)
-
-    # with open("../../../data/data.json", "w") as file:
-    # json.dump(data, file)
