@@ -1,3 +1,4 @@
+from types import NoneType
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types.inline_keyboard_button import InlineKeyboardButton
@@ -22,7 +23,7 @@ async def tracking_handler(message: Message) -> None:
     except KeyError:
         data = None
 
-    await fill_urls(message.chat.id)
+    await fill_urls()
 
     if data:
         output = [f"{i} == {', '.join(data[i])}" for i in data.keys()]
@@ -33,11 +34,25 @@ async def tracking_handler(message: Message) -> None:
     builder.add(InlineKeyboardButton(text="Запустить", callback_data="launch"))
     builder.add(InlineKeyboardButton(text="Остановить", callback_data="stop"))
 
-    await message.answer(
-        f"Список добавленных сайтов:\n\n{'\n\n'.join(output)}".strip()
-        + "\n\nСтатус мониторинга: "
-        + f"{'<b>Остановлен</b>' if not assets.config.config.task else '<b>Запущен</b>'}",
-        disable_web_page_preview=True,
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML",
-    )
+    print("FIEJIOGJOIEJWG: " + str(message.chat.id))
+
+    try:
+        assets.config.config.task[message.chat.id]
+        await message.answer(
+            f"Список добавленных сайтов:\n\n{'\n\n'.join(output)}".strip()
+            + "\n\nСтатус мониторинга: "
+            + "<b>Запущен</b>",
+            disable_web_page_preview=True,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML",
+        )
+
+    except KeyError:
+        await message.answer(
+            f"Список добавленных сайтов:\n\n{'\n\n'.join(output)}".strip()
+            + "\n\nСтатус мониторинга: "
+            + "<b>Остановлен</b>",
+            disable_web_page_preview=True,
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML",
+        )

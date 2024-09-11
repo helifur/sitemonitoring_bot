@@ -42,19 +42,25 @@ async def launch_monitoring(callback: CallbackQuery):
         disable_web_page_preview=True,
         reply_markup=builder.as_markup(),
     )
-    assets.config.config.task = asyncio.create_task(
+    assets.config.config.task[callback.message.chat.id] = asyncio.create_task(
         parser(str(callback.message.chat.id))
     )
+    print("Tasks:", end=" ")
+    print(assets.config.config.task)
 
 
 @dp.callback_query(F.data == "stop")
 async def stop_monitoring(callback: CallbackQuery):
-    assets.config.config.task.cancel()
+    assets.config.config.task[callback.message.chat.id].cancel()
 
     try:
-        await assets.config.config.task
+        await assets.config.config.task[callback.message.chat.id]
 
     except asyncio.CancelledError:
+        assets.config.config.task.pop(callback.message.chat.id, None)
+        print("Tasks:", end=" ")
+        print(assets.config.config.task)
+
         await callback.answer("Мониторинг остановлен!", show_alert=True)
 
         builder = InlineKeyboardBuilder()
@@ -67,7 +73,6 @@ async def stop_monitoring(callback: CallbackQuery):
             disable_web_page_preview=True,
             reply_markup=builder.as_markup(),
         )
-        assets.config.config.task = None
 
 
 async def main() -> None:

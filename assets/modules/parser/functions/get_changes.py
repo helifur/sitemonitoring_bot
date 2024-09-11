@@ -55,7 +55,7 @@ async def parse_timepad(driver):
 
 
 async def parse_sitemap(driver, link, chat_id):
-    print("sitemap")
+    print("sitemap " + str(chat_id))
 
     driver.get(link)
     tree = etree.fromstring(driver.page_source)
@@ -105,25 +105,24 @@ async def parse_sitemap(driver, link, chat_id):
             ans += "Добавлены URL:\n\n"
             for url in new_urls:
                 ans += url + "\n"
-            ans += "\n=====================\n\n"
 
         if removed_urls:
-            ans += "Удалены URL:\n"
+            ans += "\n\nУдалены URL:\n"
             for url in removed_urls:
                 ans += url + "\n"
-            ans += "\n=====================\n\n"
 
-    flag = False
+    else:
+        flag = False
 
-    for i in range(len(lastmods)):
-        if lastmods[i] != previous.values()[i]:
-            if not flag:
-                ans += "Изменения в lastmods:\n"
-                flag = True
+        for i in range(len(lastmods)):
+            if lastmods[i] != list(previous.values())[i]:
+                if not flag:
+                    ans += "Изменения в lastmods:\n"
+                    flag = True
 
-            ans += f"URL: {urls[i]}\n"
-            ans += f"Старый lastmod: {previous.values()[i]}\n"
-            ans += f"Новый lastmod: {lastmods[i]}\n\n"
+                ans += f"URL: {urls[i]}\n"
+                ans += f"Старый lastmod: {list(previous.values())[i]}\n"
+                ans += f"Новый lastmod: {lastmods[i]}\n\n"
 
     data[link] = sitemaps
     all_data[chat_id] = data
@@ -141,7 +140,13 @@ async def get_changes(link, class_name, chat_id):
         all_elems = json.loads(await file.read())
         elems = all_elems[chat_id]
 
-    driver = uc.Chrome(use_subprocess=True)
+    options = uc.ChromeOptions()
+
+    options.add_argument("--ignore-ssl-errors=yes")
+    options.add_argument("--ignore-certificate-errors")
+
+    driver = uc.Chrome(options=options)
+
     driver.maximize_window()
 
     if link[-3:] == "xml":

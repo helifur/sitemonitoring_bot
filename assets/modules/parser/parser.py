@@ -23,11 +23,19 @@ async def parser(chat_id):
                 #    )
 
                 if result:
-                    await bot.send_message(
-                        chat_id=chat_id,
-                        text=f"Сайт: {url}\nИмя класса: {classname}\n"
-                        f"Изменения: 🔽🔽🔽\n=============\n{result}\n============\n",
-                        disable_web_page_preview=True,
-                    )
+                    if "intickets" in url:
+                        await bot.send_message(
+                            chat_id=chat_id,
+                            text=f"Обнаружены изменения!\n\nСайт: {url}\nИмя класса: {classname}\n",
+                            disable_web_page_preview=True,
+                        )
+
+                    else:
+                        await bot.send_message(
+                            chat_id=chat_id,
+                            text=f"Сайт: {url}\nИмя класса: {classname}\n"
+                            f"Изменения: 🔽🔽🔽\n=============\n{result}\n============\n",
+                            disable_web_page_preview=True,
+                        )
 
         await asyncio.sleep(timer)
