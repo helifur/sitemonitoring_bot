@@ -201,6 +201,9 @@ async def get_changes(link, class_name, chat_id):
 
         return None
 
+    if not body_content:
+        return f"Элемент с классом {class_name} не найден!"
+
     result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
 
     if result:
