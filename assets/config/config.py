@@ -8,3 +8,4 @@ dp = Dispatcher()
 bot = Bot(token=TOKEN)
 task = {}
 timer = 4
+driver = None

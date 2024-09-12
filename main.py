@@ -57,6 +57,7 @@ async def stop_monitoring(callback: CallbackQuery):
         await assets.config.config.task[callback.message.chat.id]
 
     except asyncio.CancelledError:
+        assets.config.config.driver.quit()
         assets.config.config.task.pop(callback.message.chat.id, None)
         print("Tasks:", end=" ")
         print(assets.config.config.task)

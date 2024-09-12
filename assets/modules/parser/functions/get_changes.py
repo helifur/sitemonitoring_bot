@@ -10,6 +10,8 @@ import json
 import difflib
 import re
 
+import assets.config.config
+
 from lxml import etree
 
 
@@ -27,7 +29,7 @@ async def parse_intickets(driver, classname):
         )
 
         body_content = element.get_attribute("innerHTML")
-
+        driver.quit()
         return body_content
 
     except Exception:
@@ -48,6 +50,7 @@ async def parse_timepad(driver):
         await asyncio.sleep(2)
 
         body_content = element.get_attribute("innerHTML")
+        driver.quit()
         return body_content
 
     except Exception:
@@ -145,35 +148,37 @@ async def get_changes(link, class_name, chat_id):
     options.add_argument("--ignore-ssl-errors=yes")
     options.add_argument("--ignore-certificate-errors")
 
-    driver = uc.Chrome(options=options)
+    assets.config.config.driver = uc.Chrome(options=options)
 
-    driver.maximize_window()
+    assets.config.config.driver.maximize_window()
 
     if link[-3:] == "xml":
-        return await parse_sitemap(driver, link, chat_id)
+        return await parse_sitemap(assets.config.config.driver, link, chat_id)
 
     "============================================="
 
-    driver.get(link)
+    assets.config.config.driver.get(link)
 
     if "timepad" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
         "."
     ):
-        body_content = await parse_timepad(driver)
+        body_content = await parse_timepad(assets.config.config.driver)
 
     elif "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
         1
     ).split("."):
-        body_content = await parse_intickets(driver, class_name)
+        body_content = await parse_intickets(assets.config.config.driver, class_name)
 
     else:
         try:
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(assets.config.config.driver, 10).until(
                 EC.visibility_of_element_located((By.CLASS_NAME, class_name))
             )
             await asyncio.sleep(2)
 
-            body_element = driver.find_element(By.CLASS_NAME, class_name)
+            body_element = assets.config.config.driver.find_element(
+                By.CLASS_NAME, class_name
+            )
             print("Элемент найден!")
             body_content = body_element.get_attribute("innerHTML")
             print("Содержимое: " + body_content[:10] + "...")
@@ -181,7 +186,7 @@ async def get_changes(link, class_name, chat_id):
         except Exception:
             return f"Элемент с классом {class_name} не был обнаружен!"
 
-    driver.quit()
+    assets.config.config.driver.quit()
 
     content = elems[link][class_name]
 
