@@ -139,87 +139,101 @@ async def parse_sitemap(driver, link, chat_id):
 
 
 async def get_changes(link, class_name, chat_id):
-    async with aiofiles.open("./assets/modules/parser/elements/elements.json") as file:
-        all_elems = json.loads(await file.read())
-        elems = all_elems[chat_id]
-
-    options = uc.ChromeOptions()
-
-    options.add_argument("--ignore-ssl-errors=yes")
-    options.add_argument("--ignore-certificate-errors")
-
-    assets.config.config.driver = uc.Chrome(options=options)
-
-    assets.config.config.driver.maximize_window()
-
-    if link[-3:] == "xml":
-        return await parse_sitemap(assets.config.config.driver, link, chat_id)
-
-    "============================================="
-
-    assets.config.config.driver.get(link)
-
-    if "timepad" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(1).split(
-        "."
-    ):
-        body_content = await parse_timepad(assets.config.config.driver)
-
-    elif "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
-        1
-    ).split("."):
-        body_content = await parse_intickets(assets.config.config.driver, class_name)
-
-    else:
-        try:
-            WebDriverWait(assets.config.config.driver, 10).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, class_name))
-            )
-            await asyncio.sleep(2)
-
-            body_element = assets.config.config.driver.find_element(
-                By.CLASS_NAME, class_name
-            )
-            print("Элемент найден!")
-            body_content = body_element.get_attribute("innerHTML")
-            print("Содержимое: " + body_content[:10] + "...")
-
-        except Exception:
-            return f"Элемент с классом {class_name} не был обнаружен!"
-
-    assets.config.config.driver.quit()
-
-    content = elems[link][class_name]
-
-    if not content:
-        elems[link][class_name] = body_content
-        all_elems[chat_id] = elems
-
+    try:
         async with aiofiles.open(
-            "./assets/modules/parser/elements/elements.json", "w"
+            "./assets/modules/parser/elements/elements.json"
         ) as file:
-            await file.write(json.dumps(all_elems, indent=4))
+            all_elems = json.loads(await file.read())
+            elems = all_elems[chat_id]
 
-        return None
+        options = uc.ChromeOptions()
 
-    if not body_content:
-        return f"Элемент с классом {class_name} не найден!"
+        options.add_argument("--ignore-ssl-errors=yes")
+        options.add_argument("--ignore-certificate-errors")
 
-    result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
+        assets.config.config.driver = uc.Chrome(options=options)
 
-    if result:
-        changes = "\n".join(
-            [line for line in result if line.startswith("-") or line.startswith("+")]
-        )
+        assets.config.config.driver.maximize_window()
 
-        elems[link][class_name] = body_content
-        all_elems[chat_id] = elems
+        if link[-3:] == "xml":
+            return await parse_sitemap(assets.config.config.driver, link, chat_id)
 
-        async with aiofiles.open(
-            "./assets/modules/parser/elements/elements.json", "w"
-        ) as file:
-            await file.write(json.dumps(all_elems, indent=4))
+        "============================================="
 
-        return changes
+        assets.config.config.driver.get(link)
 
-    else:
-        return None
+        if "timepad" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
+            1
+        ).split("."):
+            body_content = await parse_timepad(assets.config.config.driver)
+
+        elif "intickets" in re.search(r"(?:https://)?(?:www\.)?([^/]+)", link).group(
+            1
+        ).split("."):
+            body_content = await parse_intickets(
+                assets.config.config.driver, class_name
+            )
+
+        else:
+            try:
+                WebDriverWait(assets.config.config.driver, 10).until(
+                    EC.visibility_of_element_located((By.CLASS_NAME, class_name))
+                )
+                await asyncio.sleep(2)
+
+                body_element = assets.config.config.driver.find_element(
+                    By.CLASS_NAME, class_name
+                )
+                print("Элемент найден!")
+                body_content = body_element.get_attribute("innerHTML")
+                print("Содержимое: " + body_content[:10] + "...")
+
+            except Exception:
+                return f"Элемент с классом {class_name} не был обнаружен!"
+
+        assets.config.config.driver.quit()
+
+        content = elems[link][class_name]
+
+        if not content:
+            elems[link][class_name] = body_content
+            all_elems[chat_id] = elems
+
+            async with aiofiles.open(
+                "./assets/modules/parser/elements/elements.json", "w"
+            ) as file:
+                await file.write(json.dumps(all_elems, indent=4))
+
+            return None
+
+        if not body_content:
+            return f"Элемент с классом {class_name} не найден!"
+
+        result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
+
+        if result:
+            changes = "\n".join(
+                [
+                    line
+                    for line in result
+                    if line.startswith("-") or line.startswith("+")
+                ]
+            )
+
+            elems[link][class_name] = body_content
+            all_elems[chat_id] = elems
+
+            async with aiofiles.open(
+                "./assets/modules/parser/elements/elements.json", "w"
+            ) as file:
+                await file.write(json.dumps(all_elems, indent=4))
+
+            return changes
+
+        else:
+            return None
+
+    except asyncio.CancelledError:
+        print("CancelledError")
+        assets.config.config.driver.quit()
+        raise
