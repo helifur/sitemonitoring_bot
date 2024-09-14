@@ -18,11 +18,17 @@ from lxml import etree
 async def parse_intickets(driver, classname):
     try:
         # waiting for canvas appearing
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 5).until(
             EC.visibility_of_element_located((By.CLASS_NAME, "scheme-canvas"))
         )
-        await asyncio.sleep(2)
 
+    except Exception:
+        # waiting for canvas appearing
+        WebDriverWait(driver, 5).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, "closed-sales"))
+        )
+
+    finally:
         # get element
         element = WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CLASS_NAME, classname))
@@ -31,9 +37,6 @@ async def parse_intickets(driver, classname):
         body_content = element.get_attribute("innerHTML")
         driver.quit()
         return body_content
-
-    except Exception:
-        return None
 
 
 async def parse_timepad(driver):
