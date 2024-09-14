@@ -34,7 +34,7 @@ async def parser(chat_id):
                         await bot.send_message(
                             chat_id=chat_id,
                             text=f"Сайт: {url}\nИмя класса: {classname}\n"
-                            f"Изменения: 🔽🔽🔽\n=============\n{result}\n============\n",
+                            f"Изменения: 🔽🔽🔽\n=============\n{result[:3400]}\n============\n",
                             disable_web_page_preview=True,
                         )
 
