@@ -23,7 +23,7 @@ async def parser(chat_id):
                 #    )
 
                 if result:
-                    if "intickets" in url:
+                    if "intickets" in url or "timepad" in url:
                         await bot.send_message(
                             chat_id=chat_id,
                             text=f"Обнаружены изменения!\n\nСайт: {url}\nИмя класса: {classname}\n",
