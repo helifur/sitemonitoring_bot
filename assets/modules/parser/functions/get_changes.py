@@ -9,10 +9,23 @@ from selenium.webdriver.support import expected_conditions as EC
 import json
 import difflib
 import re
+import psutil
 
 import assets.config.config
 
 from lxml import etree
+
+
+async def kill_driver_process(driver):
+    try:
+        # Найдем процесс по pid
+        pid = driver.service.process.pid
+        process = psutil.Process(pid)
+        for proc in process.children(recursive=True):
+            proc.kill()
+        process.kill()
+    except Exception as e:
+        print(f"Ошибка при завершении процесса: {e}")
 
 
 async def parse_intickets(driver, classname):
@@ -180,12 +193,12 @@ async def get_changes(link, class_name, chat_id):
         else:
             try:
                 WebDriverWait(assets.config.config.driver, 10).until(
-                    EC.visibility_of_element_located((By.CLASS_NAME, class_name))
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, f".legend-top"))
                 )
                 await asyncio.sleep(2)
 
                 body_element = assets.config.config.driver.find_element(
-                    By.CLASS_NAME, class_name
+                    By.XPATH, f"//*[contains(@class, '{class_name}')]"
                 )
                 print("Элемент найден!")
                 body_content = body_element.get_attribute("innerHTML")
@@ -195,6 +208,7 @@ async def get_changes(link, class_name, chat_id):
                 return f"Элемент с классом {class_name} не был обнаружен!"
 
         assets.config.config.driver.quit()
+        await kill_driver_process(assets.config.config.driver)
 
         content = elems[link][class_name]
 
@@ -210,6 +224,8 @@ async def get_changes(link, class_name, chat_id):
             return None
 
         if not body_content:
+            assets.config.config.driver.quit()
+            await kill_driver_process(assets.config.config.driver)
             return f"Элемент с классом {class_name} не найден!"
 
         result = difflib.ndiff(content.split("\n"), body_content.split("\n"))
@@ -239,4 +255,5 @@ async def get_changes(link, class_name, chat_id):
     except asyncio.CancelledError:
         print("CancelledError")
         assets.config.config.driver.quit()
+        await kill_driver_process(assets.config.config.driver)
         raise
