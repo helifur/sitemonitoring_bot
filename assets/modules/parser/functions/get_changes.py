@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import json
 import difflib
 import re
-import psutil
+import os
 
 import assets.config.config
 
@@ -18,12 +18,7 @@ from lxml import etree
 
 async def kill_driver_process(driver):
     try:
-        # Найдем процесс по pid
-        pid = driver.service.process.pid
-        process = psutil.Process(pid)
-        for proc in process.children(recursive=True):
-            proc.kill()
-        process.kill()
+        os.system("pkill -f chromedriver")
     except Exception as e:
         print(f"Ошибка при завершении процесса: {e}")
 
