@@ -19,6 +19,7 @@ from lxml import etree
 async def kill_driver_process(driver):
     try:
         os.system("pkill -f chromedriver")
+        os.wait()
     except Exception as e:
         print(f"Ошибка при завершении процесса: {e}")
 
