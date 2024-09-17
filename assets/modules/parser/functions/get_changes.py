@@ -45,6 +45,8 @@ async def parse_intickets(driver, classname):
 
         body_content = element.get_attribute("innerHTML")
         driver.quit()
+        await kill_driver_process(assets.config.config.driver)
+
         return body_content
 
 
@@ -62,11 +64,14 @@ async def parse_timepad(driver):
         await asyncio.sleep(2)
 
         body_content = element.get_attribute("innerHTML")
-        driver.quit()
         return body_content
 
     except Exception:
         return None
+
+    finally:
+        driver.quit()
+        await kill_driver_process(assets.config.config.driver)
 
 
 async def parse_sitemap(driver, link, chat_id):
@@ -74,7 +79,9 @@ async def parse_sitemap(driver, link, chat_id):
 
     driver.get(link)
     tree = etree.fromstring(driver.page_source)
+
     driver.quit()
+    await kill_driver_process(assets.config.config.driver)
 
     urls = [
         loc.text

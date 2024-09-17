@@ -17,6 +17,7 @@ from assets.modules.handlers.start import start_handler
 from assets.modules.handlers.tracking import tracking_handler
 from assets.modules.handlers.add import add_handler
 from assets.modules.handlers.remove import remove_handler
+from assets.modules.handlers.reboot import reboot_handler
 
 from assets.modules.handlers.new_site import new_site_handler
 from assets.modules.handlers.add_classname import add_classname_handler
@@ -83,6 +84,7 @@ async def main() -> None:
     dp.message.register(add_handler, Command("add"), StateFilter(None))
     dp.message.register(tracking_handler, Command("tracking"), StateFilter(None))
     dp.message.register(remove_handler, Command("remove"), StateFilter(None))
+    dp.message.register(reboot_handler, Command("reboot"))
 
     dp.message.register(new_site_handler, ManageSite.adding_site)
     dp.message.register(add_classname_handler, ManageSite.adding_class_name)
